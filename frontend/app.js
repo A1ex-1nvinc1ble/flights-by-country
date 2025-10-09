@@ -65,17 +65,22 @@ class FlightsApp {
     }
 
     async sendQuestion(airport, question) {
-        return await fetch('/api/ask', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                airport: airport,
-                question: question
-            })
-        });
-    }
+    // Используем абсолютный путь для API
+    const apiUrl = window.location.hostname === 'localhost' 
+        ? '/api/ask' 
+        : '/api/ask';
+    
+    return await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            airport: airport,
+            question: question
+        })
+    });
+}
 
     setLoadingState(isLoading, button) {
         if (isLoading) {
