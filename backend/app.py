@@ -3,73 +3,84 @@ from flask_cors import CORS
 import os
 import requests
 import json
-from flight_service import FlightService
-from ai_service import AIService
 
 app = Flask(__name__)
-CORS(app)  # Разрешаем запросы с фронтенда
+CORS(app)
 
-# Инициализируем службы
+class FlightService:
+    def get_flight_data(self, airport):
+        """Демо данные - надежно работают"""
+        demo_flights = {
+            "DXB": [
+                {"flightNumber": "EK202", "departure": {"city": "London", "country": "UK"}, "airline": "Emirates"},
+                {"flightNumber": "EK412", "departure": {"city": "Mumbai", "country": "India"}, "airline": "Emirates"},
+            ],
+            "LHR": [
+                {"flightNumber": "BA123", "departure": {"city": "New York", "country": "USA"}, "airline": "British Airways"},
+                {"flightNumber": "LH456", "departure": {"city": "Frankfurt", "country": "Germany"}, "airline": "Lufthansa"},
+            ]
+        }
+        return {"schedules": demo_flights.get(airport, [])}
+
+class AIService:
+    def ask_question(self, flight_data, question, airport):
+        """Упрощенный AI - всегда работает"""
+        flights = flight_data.get("schedules", [])
+        
+        if "how many" in question.lower():
+            return f"There are {len(flights)} flights arriving at {airport}."
+        
+        if "country" in question.lower():
+            countries = list(set([f["departure"]["country"] for f in flights]))
+            return f"Flights are arriving from: {', '.join(countries)}"
+        
+        if "airline" in question.lower():
+            airlines = list(set([f["airline"] for f in flights]))
+            return f"Airlines: {', '.join(airlines)}"
+        
+        return f"I found {len(flights)} flights for {airport}. Ask me about countries, airlines, or flight counts."
+
 flight_service = FlightService()
 ai_service = AIService()
 
 @app.route('/')
 def serve_frontend():
-    """Отдаем фронтенд"""
     return send_from_directory('../frontend', 'index.html')
 
 @app.route('/<path:path>')
 def serve_static(path):
-    """Статические файлы фронтенда"""
     return send_from_directory('../frontend', path)
 
-@app.route('/api/health', methods=['GET'])
+@app.route('/api/health')
 def health_check():
-    """Проверка здоровья API"""
-    return jsonify({"status": "healthy", "framework": "Flask"})
+    return jsonify({"status": "healthy", "message": "Flask API is working!"})
+
+@app.route('/api/test')
+def test_api():
+    return jsonify({"message": "Test endpoint works!", "data": [1, 2, 3]})
 
 @app.route('/api/ask', methods=['POST'])
 def ask_question():
-    """Основной endpoint для вопросов"""
     try:
-        # Получаем данные из запроса
         data = request.get_json()
-        if not data:
-            return jsonify({"error": "No JSON data provided"}), 400
+        airport = data.get('airport', 'LHR')
+        question = data.get('question', 'How many flights?')
         
-        airport = data.get('airport')
-        question = data.get('question')
-        
-        if not airport or not question:
-            return jsonify({"error": "Airport and question are required"}), 400
-        
-        print(f"Processing request: {airport} - {question}")
-        
-        # Получаем данные о рейсах
         flight_data = flight_service.get_flight_data(airport)
-        
-        # Получаем ответ от AI
         answer = ai_service.ask_question(flight_data, question, airport)
         
-        # Формируем ответ
-        response = {
+        return jsonify({
             "answer": answer,
             "debug": {
-                "flights_count": len(flight_data.get("schedules", [])),
                 "airport": airport,
-                "framework": "Flask"
+                "flights_count": len(flight_data.get("schedules", [])),
+                "status": "success"
             }
-        }
-        
-        return jsonify(response)
+        })
         
     except Exception as e:
-        print(f"Error in ask_question: {str(e)}")
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# Для Vercel нужно указать app
+# Для локальной разработки
 if __name__ == '__main__':
     app.run(debug=True)
-else:
-    # Для production на Vercel
-    application = app
