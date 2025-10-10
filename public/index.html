@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализатор Полетов</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            text-align: center;
+            color: #1a2b48;
+            margin-bottom: 25px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        label {
+            font-weight: 600;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 14px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:disabled {
+            background-color: #a0cfff;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #e9f5ff;
+            border-left: 5px solid #007bff;
+            border-radius: 8px;
+            white-space: pre-wrap; /* Сохраняет форматирование текста */
+            word-wrap: break-word;
+        }
+        .loader {
+            text-align: center;
+            font-style: italic;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Полеты по странам</h1>
+        <form id="flight-form">
+            <div>
+                <label for="airport">Выберите аэропорт:</label>
+                <select id="airport" name="airport">
+                    <option value="DXB">Дубай (DXB)</option>
+                    <option value="LHR">Лондон (LHR)</option>
+                    <option value="CDG">Париж (CDG)</option>
+                    <option value="SIN">Сингапур (SIN)</option>
+                    <option value="HKG">Гонконг (HKG)</option>
+                    <option value="AMS">Амстердам (AMS)</option>
+                </select>
+            </div>
+            <div>
+                <label for="question">Ваш вопрос:</label>
+                <input type="text" id="question" name="question" placeholder="Напр.: Сколько рейсов из Германии?" required>
+            </div>
+            <button type="submit" id="submit-button">Получить ответ</button>
+        </form>
+        <div id="result-container" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('flight-form');
+        const resultContainer = document.getElementById('result-container');
+        const submitButton = document.getElementById('submit-button');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Отменяем стандартную отправку формы
+
+            const airport = document.getElementById('airport').value;
+            const question = document.getElementById('question').value;
+
+// Блокируем кнопку и показываем статус
+            submitButton.disabled = true;
+            submitButton.textContent = 'Обработка...';
+            resultContainer.style.display = 'block';
+            resultContainer.innerHTML = '<div class="loader">Получаем данные о рейсах и анализируем...</div>';
+
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ airport, question })
+                });
+
+                if (!response.ok) {
+                    // Если сервер вернул ошибку, пытаемся прочитать ее тело
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || Ошибка сервера: ${response.status});
+                }
+
+                const data = await response.json();
+                resultContainer.textContent = data.answer;
+
+            } catch (error) {
+                console.error('Ошибка:', error);
+                resultContainer.textContent = Произошла ошибка: ${error.message};
+            } finally {
+                // Возвращаем кнопку в исходное состояние
+                submitButton.disabled = false;
+                submitButton.textContent = 'Получить ответ';
+            }
+        });
+    </script>
+</body>
+</html>
