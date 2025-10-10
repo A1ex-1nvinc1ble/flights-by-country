@@ -120,32 +120,27 @@
             resultContainer.style.display = 'block';
             resultContainer.innerHTML = '<div class="loader">Получаем данные о рейсах и анализируем...</div>';
 
-            try {
-                const response = await fetch('/api/ask', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ airport, question })
-                });
+           try {
+    const response = await fetch('/api/ask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ airport, question })
+    });
 
-                if (!response.ok) {
-                    // Если сервер вернул ошибку, пытаемся прочитать ее тело
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || Ошибка сервера: ${response.status});
-                }
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+    }
 
-                const data = await response.json();
-                resultContainer.textContent = data.answer;
+    const data = await response.json();
+    resultContainer.textContent = data.answer;
 
-            } catch (error) {
-                console.error('Ошибка:', error);
-                resultContainer.textContent = Произошла ошибка: ${error.message};
-            } finally {
-                // Возвращаем кнопку в исходное состояние
-                submitButton.disabled = false;
-                submitButton.textContent = 'Получить ответ';
-            }
+} catch (error) {
+    console.error('Ошибка:', error);
+    resultContainer.textContent = `Ошибка: ${error.message}. Проверьте консоль для деталей.`;
+}
         });
     </script>
 </body>
